@@ -1,7 +1,9 @@
-use std::{fs::{self}, path::PathBuf};
+use std::{fs::{self}, path::PathBuf, time::Instant};
 
 fn main() {
+    let now = Instant::now();
     dig_deep(fs::read_dir("../disksearch").unwrap().map(|dir| dir.unwrap().path()).collect(), "dig_deep");
+    println!("dig_deep done in {:?}", now.elapsed());
 }
 
 fn dig_deep(dirs: Vec<PathBuf>, target: &str) {
@@ -25,8 +27,10 @@ fn dig_deep(dirs: Vec<PathBuf>, target: &str) {
                 },
                 Err(e) => eprintln!("ERROR: {}", e),
             };
+
         } else if dir == &PathBuf::from("C:/Windows") { // only on windows
             eprintln!("WINDOWS FILES FOUND");
+
         } else {
             match fs::read_dir(dir) {
                 Ok(parent) => dig_deep(parent.map(|dir| dir.unwrap().path()).collect(), target),// spawn_thread(parent, target),
@@ -35,6 +39,7 @@ fn dig_deep(dirs: Vec<PathBuf>, target: &str) {
         }
     }
 }
+
 /*
 fn spawn_thread(parent: ReadDir, target: &str) {
     thread::spawn(|| dig_deep(parent.map(|dir| dir.unwrap().path()).collect(), target));
