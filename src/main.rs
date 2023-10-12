@@ -9,12 +9,13 @@ fn dig_deep(dirs: Vec<PathBuf>, target: &str) {
         if dir.is_file() {
             match fs::read_to_string(dir) {
                 Ok(file) => {let mut line_count = 0;
-                for line in file.lines() {
-                    line_count += 1;
-                    if line.contains(target) {
-                        println!("{} found in {:?}, line {}", target, dir, line_count);
+                    for line in file.lines() {
+                        line_count += 1;
+                        if line.contains(target) {
+                            println!("{} found in {:?}, line {}", target, dir, line_count);
+                        }
                     }
-                }},
+                },
                 Err(e) => eprintln!("ERROR: {}", e),
             };
 
