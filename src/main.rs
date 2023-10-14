@@ -1,4 +1,5 @@
 use std::{fs::{self}, path::PathBuf, time::Instant};
+use rayon::prelude::*;
 
 pub const ROOT: &str = "C:/Users/jakub/Documents";
 pub const TARGET: &str = "main.rs";
@@ -6,23 +7,29 @@ pub const SEARCH_IN_FILES: bool = false;
 
 fn main() {
     let now = Instant::now();
-    match fs::read_dir(ROOT) {
-        Ok(root) => dig_deep(root.map(|dir|dir.unwrap().path()).collect()),
-        Err(e) => eprintln!("ERROR: {}", e),
-    };
-    println!("dig_deep done in {:?}", now.elapsed());
+    if let Ok(root) = fs::read_dir(ROOT) {
+        dig_deep(root.map(|dir| dir.unwrap().path()).collect())
+    }
+    println!("dig_deep finished in {:?}", now.elapsed());
 }
 
-#[tokio::main]
-async fn dig_deep(dirs: Vec<PathBuf>) {
-    //println!("THREAD ID: {:?}",std::thread::current().id());
-    for dir in &dirs {
+fn dig_deep(dirs: Vec<PathBuf>) {
+    dirs.par_iter().for_each(|dir| // ~350% boost
         if dir.is_file() {
-            if let Some(trg) = dir.file_name() {
-                if trg == TARGET {
-                    println!("{:?} found in {:?}", TARGET, dir);
-                }
+            match dir.file_name() {
+                Some(trg) => {
+                    match trg.to_str() {
+                        Some(value) => {
+                            if value == TARGET {
+                                println!("{:?} found in {:?}", value, dir);
+                            }
+                        },
+                        None => eprintln!("NOPE"),
+                    }
+                },
+                None => eprintln!("NOPE"),
             }
+            
             if SEARCH_IN_FILES {
                 match fs::read_to_string(dir) {
                     Ok(file) => {
@@ -37,22 +44,14 @@ async fn dig_deep(dirs: Vec<PathBuf>) {
                     Err(e) => eprintln!("ERROR: {}", e),
                 }
             }
-
-        } else if dir == &PathBuf::from("C:/Windows") { // only on windows
-            eprintln!("WINDOWS FILES FOUND");
-
+            
+        } else if dir == &PathBuf::from("C:/Windows") { // doesnt search in system directory
+            eprintln!("WINDOWS DIRECTORY FOUND");
+            
         } else {
-            match fs::read_dir(dir) {
-                Ok(parent) => new_dig_deep_task(parent.map(|dir| dir.unwrap().path()).collect()),
-                Err(e) => eprintln!("ERROR: {}", e),
+            if let Ok(parent) = fs::read_dir(dir) {
+                dig_deep(parent.map(|dir| dir.unwrap().path()).collect());
             }; 
         }
-    }
-}
-
-fn new_dig_deep_task(dirs: Vec<PathBuf>) {
-    std::thread::spawn(|| {
-        dig_deep(dirs);
-        std::thread::yield_now();
-    });
+    );
 }
