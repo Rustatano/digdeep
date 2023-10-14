@@ -1,19 +1,21 @@
 use std::{fs::{self}, path::PathBuf, time::Instant};
 
-pub const ROOT: &str = "..\\dig_deep";
+pub const ROOT: &str = "C:/Users/jakub/Documents";
 pub const TARGET: &str = "main.rs";
 pub const SEARCH_IN_FILES: bool = false;
 
 fn main() {
     let now = Instant::now();
     match fs::read_dir(ROOT) {
-        Ok(root) => dig_deep(root.map(|dir| dir.unwrap().path()).collect()),
-        Err(_) => eprintln!("DIRECTORY NOT FOUND"),
+        Ok(root) => dig_deep(root.map(|dir|dir.unwrap().path()).collect()),
+        Err(e) => eprintln!("ERROR: {}", e),
     };
     println!("dig_deep done in {:?}", now.elapsed());
 }
 
-fn dig_deep(dirs: Vec<PathBuf>) {
+#[tokio::main]
+async fn dig_deep(dirs: Vec<PathBuf>) {
+    //println!("THREAD ID: {:?}",std::thread::current().id());
     for dir in &dirs {
         if dir.is_file() {
             if let Some(trg) = dir.file_name() {
@@ -41,9 +43,16 @@ fn dig_deep(dirs: Vec<PathBuf>) {
 
         } else {
             match fs::read_dir(dir) {
-                Ok(parent) => dig_deep(parent.map(|dir| dir.unwrap().path()).collect()),
+                Ok(parent) => new_dig_deep_task(parent.map(|dir| dir.unwrap().path()).collect()),
                 Err(e) => eprintln!("ERROR: {}", e),
             }; 
         }
     }
+}
+
+fn new_dig_deep_task(dirs: Vec<PathBuf>) {
+    std::thread::spawn(|| {
+        dig_deep(dirs);
+        std::thread::yield_now();
+    });
 }
