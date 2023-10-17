@@ -1,14 +1,35 @@
-use std::{fs::{self}, path::PathBuf, time::Instant};
+use std::{fs::{self}, path::PathBuf, time::Instant, env, process};
 use rayon::prelude::*;
 
-pub const ROOT: &str = "C:\\";
-pub const TARGET: &str = "main.rs";
+pub const TARGET: &str = "config.toml";
 pub const SEARCH_IN_FILES: bool = false;
+
+struct Config {
+    path: PathBuf,
+}
+
+impl Config {
+    fn build(args: Vec<String>) -> Result<Config, String>{
+        if args.len() < 2 || args.len() > 2{
+            return Err(format!("expected 1 argument, but {} were given", args.len() - 1));
+        }
+        Ok(Config {
+            path: PathBuf::from(&args[1]),
+        })
+    }
+}
 
 fn main() {
     let now = Instant::now();
-    if let Ok(root) = fs::read_dir(ROOT) {
-        dig_deep(root.map(|dir| dir.unwrap().path()).collect())
+    let config = match Config::build(env::args().collect()) {
+        Ok(config) => config,
+        Err(e) => {
+            eprintln!("ERROR: {}", e); 
+            process::exit(1); },
+    };
+    match fs::read_dir(&config.path) {
+        Ok(_) => dig_deep(vec![config.path]),
+        Err(e) => eprintln!("ERROR: {:?}", e),
     }
     println!("dig_deep finished in {:?}", now.elapsed());
 }
