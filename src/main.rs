@@ -1,34 +1,13 @@
-use std::{fs::{self}, path::PathBuf, time::Instant, env, process};
+use std::{fs::{self}, path::PathBuf, time::Instant};
 use rayon::prelude::*;
 
-pub const TARGET: &str = "config.toml";
-pub const SEARCH_IN_FILES: bool = false;
-
-struct Config {
-    path: PathBuf,
-}
-
-impl Config {
-    fn build(args: Vec<String>) -> Result<Config, String>{
-        if args.len() < 2 || args.len() > 2{
-            return Err(format!("expected 1 argument, but {} were given", args.len() - 1));
-        }
-        Ok(Config {
-            path: PathBuf::from(&args[1]),
-        })
-    }
-}
-
+const ROOT: &str = "C:/";
+const TARGET: &str = "main.rs";
+const SEARCH_IN_FILES: bool = false;
 fn main() {
     let now = Instant::now();
-    let config = match Config::build(env::args().collect()) {
-        Ok(config) => config,
-        Err(e) => {
-            eprintln!("ERROR: {}", e); 
-            process::exit(1); },
-    };
-    match fs::read_dir(&config.path) {
-        Ok(_) => dig_deep(vec![config.path]),
+    match fs::read_dir(ROOT) {
+        Ok(_) => dig_deep(vec![PathBuf::from(ROOT)]),
         Err(e) => eprintln!("ERROR: {:?}", e),
     }
     println!("dig_deep finished in {:?}", now.elapsed());
@@ -57,7 +36,7 @@ fn dig_deep(dirs: Vec<PathBuf>) {
                         let mut line_count: u32 = 0;
                         for line in file.lines() {
                             line_count += 1;
-                            if line.contains(TARGET) {
+                            if line.contains(&TARGET) {
                                 println!("{} found in {:?}, line {}", TARGET, dir, line_count);
                             }
                         }
